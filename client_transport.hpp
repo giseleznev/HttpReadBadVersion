@@ -10,37 +10,15 @@ namespace elx::http
     class client_transport
     {
     public:
-        using response_type = boost::beast::http::response<boost::beast::http::dynamic_body>;
-
         [[nodiscard]] virtual boost::beast::tcp_stream& stream() = 0;
-
-        void write(boost::beast::http::request<boost::beast::http::string_body>& request)
-        {
-            handle_write(request);
-        }
-
-        void read(response_type& response,
-                  boost::beast::error_code& ec)
-        {
-            handle_read(response, ec);
-        }
 
         virtual boost::beast::error_code set_hostname(const std::string& hostname) { return { }; }
         virtual void handshake() { }
 
-        void connect(const boost::asio::ip::tcp::resolver::results_type results)
+        void connect(const boost::beast::tcp_stream::endpoint_type& endpoint)
         {
-            stream().connect(results);
+            stream().connect(endpoint);
         }
-
-    private:
-        virtual void handle_write(boost::beast::http::request<boost::beast::http::string_body>& request) = 0;
-        virtual void handle_read(response_type& response,
-                                 boost::beast::error_code& ec) = 0;
-
-    protected:
-        boost::beast::flat_buffer m_buffer;
-
     };
 
     class client_transport_plain :
@@ -55,20 +33,6 @@ namespace elx::http
         [[nodiscard]] boost::beast::tcp_stream& stream() override
         {
             return m_stream;
-        }
-
-    private:
-        void handle_write(boost::beast::http::request<boost::beast::http::string_body>& request) override
-        {
-            boost::beast::http::
-            write(m_stream, request);
-        }
-
-        void handle_read(response_type& response,
-                         boost::beast::error_code& ec) override
-        {
-            boost::beast::http::
-            read(m_stream, m_buffer, response, ec);
         }
 
     private:
@@ -104,20 +68,6 @@ namespace elx::http
         void handshake() override
         {
             m_stream.handshake(boost::asio::ssl::stream_base::client);
-        }
-
-    private:
-        void handle_write(boost::beast::http::request<boost::beast::http::string_body>& request) override
-        {
-            boost::beast::http::
-            write(m_stream, request);
-        }
-
-        void handle_read(response_type& response,
-                         boost::beast::error_code& ec) override
-        {
-            boost::beast::http::
-            read(m_stream, m_buffer, response, ec);
         }
 
     private:
